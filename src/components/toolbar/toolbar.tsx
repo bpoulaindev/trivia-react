@@ -5,55 +5,70 @@ import { useTriviaCategories } from "@/hooks/useTriviaCategories";
 import { useForm } from "react-hook-form";
 import { Difficulty, ToolbarFormData, toolbarSchema } from "@/lib/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Loader } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router";
-import { paramsBuilder } from "@/lib/utils";
+import { useQuizContext } from "@/contexts/quizContext";
+import { useNavigate } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
-export const Toolbar = () => {
+export const Toolbar = ({
+  noDecoration = false,
+}: {
+  noDecoration?: boolean;
+}) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: categories, isPending: categoriesPending } =
     useTriviaCategories();
+
+  const { category, setCategory, difficulty, setDifficulty, resetQuiz } =
+    useQuizContext();
+
   const {
     control,
     handleSubmit,
     formState: { errors },
   } = useForm<ToolbarFormData>({
     resolver: zodResolver(toolbarSchema),
-    values: {
-      category: parseInt(searchParams.get("category")!, 10),
-      difficulty: (searchParams.get("difficulty") as Difficulty) || undefined,
+    defaultValues: {
+      category: category,
+      difficulty: (difficulty as Difficulty) || undefined,
     },
   });
 
-  const smoothStopLoading = () => {
-    setTimeout(() => {
-      setIsSubmitting(false);
-    }, 800);
-  };
+  const handleFormSubmit = useCallback(
+    (data: ToolbarFormData) => {
+      setIsSubmitting(true);
+      if (errors && Object.keys(errors || {}).length > 0) {
+        console.error("Form Errors:", errors);
+        setIsSubmitting(false);
+        return;
+      }
+      queryClient.invalidateQueries({
+        queryKey: ["trivia-questions", data.category, data.difficulty, 5],
+      });
+      resetQuiz();
 
-  const handleFormSubmit = (data: ToolbarFormData) => {
-    console.log("Form Data:", data);
-    setIsSubmitting(true);
-    if (errors && Object.keys(errors || {}).length > 0) {
-      console.error("Form Errors:", errors);
-      smoothStopLoading();
-      return;
-    }
-    const URLParams = paramsBuilder({
-      category: data.category,
-      difficulty: data.difficulty,
-      amount: 5,
-    });
-    navigate(`/trivia?${URLParams.toString()}`);
-    smoothStopLoading();
-  };
+      setCategory(data.category);
+      setDifficulty(data.difficulty);
+      setIsSubmitting(false);
+      navigate("/");
+    },
+    [errors, navigate, queryClient, setCategory, setDifficulty, resetQuiz],
+  );
 
   return (
-    <div className="flex items-center justify-center w-[800px] max-w-[800px] gap-4">
-      <span className="h-[2px] rounded-full w-full grow bg-border" />
+    <div
+      className={cn(
+        "flex items-center justify-center gap-4",
+        noDecoration ? "w-fit" : "w-[800px] max-w-[800px]",
+      )}
+    >
+      {!noDecoration && (
+        <span className="h-[2px] rounded-full w-full grow bg-border" />
+      )}
       <form
         onSubmit={handleSubmit(handleFormSubmit)}
         className="flex items-start gap-2"
@@ -84,7 +99,9 @@ export const Toolbar = () => {
           )}
         </Button>
       </form>
-      <span className="h-[2px] rounded-full w-full grow bg-border" />
+      {!noDecoration && (
+        <span className="h-[2px] rounded-full w-full grow bg-border" />
+      )}
     </div>
   );
 };

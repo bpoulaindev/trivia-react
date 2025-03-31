@@ -51,7 +51,7 @@ export const CategorySelect = ({
         </SelectTrigger>
         <SelectContent id="categorySelect">
           {categoriesPending ? (
-            <span>
+            <span className="flex items-center px-2 text-sm">
               <Loader size={12} className="mr-2 animate-spin" /> Loading
               categories...
             </span>

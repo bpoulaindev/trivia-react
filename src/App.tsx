@@ -1,19 +1,43 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router";
-import { Trivia } from "./components/trivia/trivia";
 
-const queryClient = new QueryClient();
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+import { QuizProvider } from "@/contexts/quizContext";
+import { Results } from "@/components/results/results";
+import { Toolbar } from "./components/toolbar/toolbar";
+import { Quizz } from "./components/quizz/quizz";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      gcTime: 1000 * 60 * 60 * 24,
+    },
+  },
+});
+
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+});
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Trivia />} />
-          <Route path="/trivia" element={<Trivia showQuizz />} />
-        </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister }}
+    >
+      <QuizProvider>
+        <BrowserRouter>
+          <div className="flex flex-col items-center justify-start min-h-svh gap-4 py-20">
+            <Toolbar />
+            <Routes>
+              <Route path="/" element={<Quizz />} />
+              <Route path="/results" element={<Results />} />
+            </Routes>
+          </div>
+        </BrowserRouter>
+      </QuizProvider>
+    </PersistQueryClientProvider>
   );
 }
 
