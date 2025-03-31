@@ -18,15 +18,8 @@ import { motion } from "motion/react";
 
 export const Quizz = () => {
   const navigate = useNavigate();
-  const {
-    questions,
-    setQuestions,
-    setCategory,
-    difficulty,
-    setDifficulty,
-    category,
-    answers,
-  } = useQuizContext();
+  const { questions, setQuestions, difficulty, category, answers } =
+    useQuizContext();
   const {
     data: triviaQuestions,
     isPending,
